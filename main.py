@@ -7,6 +7,7 @@ import dbManage
 #GLOBAL VARIABLE
 KEY = apiKeys.API_KEY
 
+
 def extract_info(json_object):
     book_info = json_object["book"]
     extracted_data = {

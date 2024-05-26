@@ -17,7 +17,8 @@ def create_table():
         title TEXT,
         isbn13 TEXT,
         isbn10 TEXT,
-        binding TEXT
+        binding TEXT,
+        redundant INTEGER DEFAULT 0  -- 0 means not redundant, 1 means redundant
     )
     ''')
     conn.commit()
@@ -27,9 +28,18 @@ def create_table():
 def insert_data(extracted_data):
     conn = sqlite3.connect('books.db')
     cursor = conn.cursor()
+
+    # Check if ISBN13 or ISBN10 already exists in the database
     cursor.execute('''
-    INSERT INTO books (publisher, language, title_long, weight, pages, date_published, authors, title, isbn13, isbn10, binding)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       SELECT * FROM books WHERE isbn13 = ? OR isbn10 = ?
+       ''', (extracted_data["isbn13"], extracted_data["isbn10"]))
+    existing_entry = cursor.fetchone()
+
+    redundant = 1 if existing_entry else 0
+
+    cursor.execute('''
+    INSERT INTO books (publisher, language, title_long, weight, pages, date_published, authors, title, isbn13, isbn10, binding, redundant)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         extracted_data["publisher"],
         extracted_data["language"],
@@ -41,7 +51,8 @@ def insert_data(extracted_data):
         extracted_data["title"],
         extracted_data["isbn13"],
         extracted_data["isbn10"],
-        extracted_data["binding"]
+        extracted_data["binding"],
+        redundant
     ))
 
     conn.commit()
