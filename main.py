@@ -2,58 +2,64 @@ import sqlite3
 import requests
 from bs4 import BeautifulSoup
 import json
+import apiKeys
+
+KEY = apiKeys.API_KEY
 
 
 def create_table():
     conn = sqlite3.connect('books.db')
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE books (
-                    title TEXT, 
-                    subtitle TEXT, 
-                    author TEXT, 
-                    publisher TEXT, 
-                    number_of_pages INTEGER, 
-                    weight INTEGER, 
-                    publish_date INTEGER, 
-                    isbn_13 INTEGER, 
-                    openlibrary_id TEXT, 
-                    lc_classifications TEXT)''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS books (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        publisher TEXT,
+        language TEXT,
+        title_long TEXT,
+        weight REAL,
+        pages INTEGER,
+        date_published INTEGER,
+        authors TEXT,
+        title TEXT,
+        isbn13 TEXT,
+        isbn10 TEXT,
+        binding TEXT
+    )
+    ''')
+
     conn.commit()
     conn.close()
-#json_formated_str = json.dumps(json_object, indent=2)
-#print(json_formated_str)
 
-def insert_data(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications):
+create_table()
+
+
+def insert_data(extracted_data):
     conn = sqlite3.connect('books.db')
     cursor = conn.cursor()
-    cursor.execute('''INSERT INTO books VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications))
+    cursor.execute('''
+    INSERT INTO books (publisher, language, title_long, weight, pages, date_published, authors, title, isbn13, isbn10, binding)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        extracted_data["publisher"],
+        extracted_data["language"],
+        extracted_data["title_long"],
+        extracted_data["weight"],
+        extracted_data["pages"],
+        extracted_data["date_published"],
+        extracted_data["authors"],
+        extracted_data["title"],
+        extracted_data["isbn13"],
+        extracted_data["isbn10"],
+        extracted_data["binding"]
+    ))
+
     conn.commit()
     print("Data inserted successfully!")
     conn.close()
 
 
-def extract_info(json_object, isbn):
-    book_info = json_object[f"ISBN:{isbn}"]
-    title = book_info["title"]
-    subtitle = book_info.get("subtitle", "")
-    author = book_info["authors"][0]["name"]
-    publisher = book_info["publishers"][0]["name"]
-    number_of_pages = book_info.get("number_of_pages", None)  # Default value if key is missing
-    weight = book_info.get("weight", None)  # Default value if key is missing
-    publish_date = book_info.get("publish_date", None)
 
-    # Extract identifiers
-    identifiers = book_info.get("identifiers", {})
-    isbn_13 = identifiers.get("isbn_13", [None])[0]
-    openlibrary_id = identifiers.get("openlibrary", [None])[0]
-
-    # Extract classifications
-    classifications = book_info.get("classifications", {})
-    lc_classifications = classifications.get("lc_classifications", [None])[0]
-
-    return title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications
-
-def extract_info_2(json_object):
+def extract_info(json_object):
     book_info = json_object["book"]
     extracted_data = {
         "publisher": book_info.get("publisher"),
@@ -68,19 +74,9 @@ def extract_info_2(json_object):
         "isbn10": book_info.get("isbn10"),
         "binding": book_info.get("binding")
     }
+    return extracted_data
+    #print(json.dumps(extracted_data, indent=2))
 
-    print(json.dumps(extracted_data, indent=2))
-def print_info(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications):
-    print("Title:", title)
-    print("Subtitle:", subtitle)
-    print("Author:", author)
-    print("Publisher:", publisher)
-    print("Number of Pages:", number_of_pages)
-    print("Weight:", weight)
-    print("Publish Date:", publish_date)
-    print("ISBN-13:", isbn_13)
-    print("OpenLibrary ID:", openlibrary_id)
-    print("LC Classifications:", lc_classifications)
 
 def view_data():
     conn = sqlite3.connect('books.db')
@@ -106,24 +102,15 @@ def main():
             view_data()
             break
 
-        h = {'Authorization': '51531_7dadf486f9c417a6a6a568eb1f9f440c'}
+        h = {'Authorization': KEY}
         r = requests.get(f"https://api2.isbndb.com/book/{isbn}", headers=h)
         #r = requests.get(f"https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json")
         if r.status_code == 200:
             data = r.text
             json_object = json.loads(data)
-            extract_info_2(json_object)
+            insert_data(extract_info(json_object))
             #json_formated_str = json.dumps(json_object, indent=2)
             #print(json_formated_str)
-            # if f"ISBN:{isbn}" in json_object:
-            #     title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications = extract_info(
-            #         json_object, isbn)
-            #     insert_data(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13,
-            #                 openlibrary_id, lc_classifications)
-            #     print_info(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13,
-            #                openlibrary_id, lc_classifications)
-            # else:
-            #     print("Book with given ISBN not found.")
         else:
             print("Error occurred while fetching book data. Please try again.")
 
