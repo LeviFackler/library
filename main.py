@@ -4,15 +4,19 @@ from bs4 import BeautifulSoup
 import json
 
 
+def create_table():
+    conn = sqlite3.connect('books.db')
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE books (title TEXT, author TEXT, year INTEGER)''')
+    conn.commit()
+    conn.close()
 
-#conn = sqlite3.connect('books.db')
-
-#cursor = conn.cursor()
-
-#cursor.execute('''CREATE TABLE books (title TEXT, author TEXT, year INTEGER)''')
-
-#conn.commit()
-#conn.close()
+def insert_data(title, author, year):
+    conn = sqlite3.connect('books.db')
+    cursor = conn.cursor()
+    cursor.execute(f"INSERT INTO books VALUES ('{title}', '{author}', {year})")
+    conn.commit()
+    conn.close()
 
 isbn = input("Enter ISBN: ")
 
