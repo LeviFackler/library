@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import json
 import apiKeys
 
+#GLOBAL VARIABLE
 KEY = apiKeys.API_KEY
 
 
@@ -29,8 +30,6 @@ def create_table():
 
     conn.commit()
     conn.close()
-
-create_table()
 
 
 def insert_data(extracted_data):
@@ -68,14 +67,16 @@ def extract_info(json_object):
         "weight": book_info.get("dimensions_structured", {}).get("weight", {}).get("value"),
         "pages": book_info.get("pages"),
         "date_published": book_info.get("date_published"),
-        "authors": book_info.get("authors"),
+        "authors": ", ".join(book_info.get("authors")),  # Convert list to a comma-separated string
         "title": book_info.get("title"),
         "isbn13": book_info.get("isbn13"),
         "isbn10": book_info.get("isbn10"),
         "binding": book_info.get("binding")
     }
-    return extracted_data
+
     #print(json.dumps(extracted_data, indent=2))
+    print("Data extracted successfully!")
+    return extracted_data
 
 
 def view_data():
@@ -93,6 +94,8 @@ def view_data():
 
 
 def main():
+    create_table()
+    total_books = 0
     while True:
         isbn = input("Enter ISBN (or type 'exit' to quit): ")
 
@@ -101,16 +104,15 @@ def main():
             print("Exiting program...")
             view_data()
             break
-
         h = {'Authorization': KEY}
         r = requests.get(f"https://api2.isbndb.com/book/{isbn}", headers=h)
-        #r = requests.get(f"https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json")
         if r.status_code == 200:
             data = r.text
             json_object = json.loads(data)
-            insert_data(extract_info(json_object))
-            #json_formated_str = json.dumps(json_object, indent=2)
-            #print(json_formated_str)
+            extracted_data = extract_info(json_object)
+            insert_data(extracted_data)
+            total_books += 1
+            print(f"Total books fetched: {total_books}")
         else:
             print("Error occurred while fetching book data. Please try again.")
 
