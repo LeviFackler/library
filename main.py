@@ -53,6 +53,23 @@ def extract_info(json_object, isbn):
 
     return title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications
 
+def extract_info_2(json_object):
+    book_info = json_object["book"]
+    extracted_data = {
+        "publisher": book_info.get("publisher"),
+        "language": book_info.get("language"),
+        "title_long": book_info.get("title_long"),
+        "weight": book_info.get("dimensions_structured", {}).get("weight", {}).get("value"),
+        "pages": book_info.get("pages"),
+        "date_published": book_info.get("date_published"),
+        "authors": book_info.get("authors"),
+        "title": book_info.get("title"),
+        "isbn13": book_info.get("isbn13"),
+        "isbn10": book_info.get("isbn10"),
+        "binding": book_info.get("binding")
+    }
+
+    print(json.dumps(extracted_data, indent=2))
 def print_info(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications):
     print("Title:", title)
     print("Subtitle:", subtitle)
@@ -89,19 +106,24 @@ def main():
             view_data()
             break
 
-        r = requests.get(f"https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json")
+        h = {'Authorization': '51531_7dadf486f9c417a6a6a568eb1f9f440c'}
+        r = requests.get(f"https://api2.isbndb.com/book/{isbn}", headers=h)
+        #r = requests.get(f"https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json")
         if r.status_code == 200:
             data = r.text
             json_object = json.loads(data)
-            if f"ISBN:{isbn}" in json_object:
-                title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications = extract_info(
-                    json_object, isbn)
-                insert_data(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13,
-                            openlibrary_id, lc_classifications)
-                print_info(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13,
-                           openlibrary_id, lc_classifications)
-            else:
-                print("Book with given ISBN not found.")
+            extract_info_2(json_object)
+            #json_formated_str = json.dumps(json_object, indent=2)
+            #print(json_formated_str)
+            # if f"ISBN:{isbn}" in json_object:
+            #     title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications = extract_info(
+            #         json_object, isbn)
+            #     insert_data(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13,
+            #                 openlibrary_id, lc_classifications)
+            #     print_info(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13,
+            #                openlibrary_id, lc_classifications)
+            # else:
+            #     print("Book with given ISBN not found.")
         else:
             print("Error occurred while fetching book data. Please try again.")
 
