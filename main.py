@@ -7,15 +7,26 @@ import json
 def create_table():
     conn = sqlite3.connect('books.db')
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE books (title TEXT, author TEXT, year INTEGER)''')
+    cursor.execute('''CREATE TABLE books (
+                    title TEXT, 
+                    subtitle TEXT, 
+                    author TEXT, 
+                    publisher TEXT, 
+                    number_of_pages INTEGER, 
+                    weight INTEGER, 
+                    publish_date INTEGER, 
+                    isbn_13 INTEGER, 
+                    openlibrary_id TEXT, 
+                    lc_classifications TEXT)''')
     conn.commit()
     conn.close()
 
-def insert_data(title, author, year):
+def insert_data(title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications):
     conn = sqlite3.connect('books.db')
     cursor = conn.cursor()
-    cursor.execute(f"INSERT INTO books VALUES ('{title}', '{author}', {year})")
+    cursor.execute('''INSERT INTO books VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (title, subtitle, author, publisher, number_of_pages, weight, publish_date, isbn_13, openlibrary_id, lc_classifications))
     conn.commit()
+    print("Data inserted successfully!")
     conn.close()
 
 isbn = input("Enter ISBN: ")
@@ -34,6 +45,7 @@ author = book_info["authors"][0]["name"]
 publisher = book_info["publishers"][0]["name"]
 number_of_pages = book_info.get("number_of_pages", None)  # Default value if key is missing
 weight = book_info.get("weight", None)  # Default value if key is missing
+publish_date = book_info.get("publish_date", None)
 
 # Extract identifiers
 identifiers = book_info.get("identifiers", {})
